@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "WHU 一键评教",
+  "version": "1.0",
+  "description": "武大研究生评教一键满星自动提交",
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": ["http://newyjs.whu.edu.cn/*"],
+  "action": {
+    "default_title": "WHU 一键评教"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://newyjs.whu.edu.cn/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "world": "MAIN"
+    }
+  ]
+}
