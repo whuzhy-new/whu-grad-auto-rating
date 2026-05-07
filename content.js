@@ -12,46 +12,42 @@
       bottom: 30px;
       right: 30px;
       z-index: 99999;
-      padding: 14px 28px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: #fff;
-      border: none;
+      padding: 12px 24px;
+      background: rgba(30, 30, 30, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: #f0f0f0;
+      border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 50px;
-      font-size: 15px;
-      font-weight: 600;
-      letter-spacing: 0.5px;
+      font-size: 14px;
+      font-weight: 500;
       cursor: pointer;
-      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      transition: all 0.25s ease;
       user-select: none;
       display: flex;
       align-items: center;
       gap: 8px;
     }
     #auto-five-star-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 35px rgba(102, 126, 234, 0.55);
+      background: rgba(30, 30, 30, 0.95);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+      transform: translateY(-1px);
     }
     #auto-five-star-btn:active {
       transform: translateY(0);
-      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
     }
     #auto-five-star-btn.running {
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-      box-shadow: 0 8px 25px rgba(245, 87, 108, 0.4);
-      animation: pulse 2s infinite;
+      border-color: rgba(99, 102, 241, 0.4);
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.15);
     }
     #auto-five-star-btn.done {
-      background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-      box-shadow: 0 8px 25px rgba(67, 233, 123, 0.4);
+      border-color: rgba(34, 197, 94, 0.4);
+      box-shadow: 0 4px 20px rgba(34, 197, 94, 0.15);
     }
     #auto-five-star-btn.error {
-      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-      box-shadow: 0 8px 25px rgba(250, 112, 154, 0.4);
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.85; }
+      border-color: rgba(239, 68, 68, 0.4);
+      box-shadow: 0 4px 20px rgba(239, 68, 68, 0.15);
     }
   `;
   document.head.appendChild(style);
