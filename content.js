@@ -4,91 +4,188 @@
 (function () {
   if (document.getElementById('auto-five-star-btn')) return;
 
+  // 注入样式
+  var style = document.createElement('style');
+  style.textContent = `
+    #auto-five-star-btn {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      z-index: 99999;
+      padding: 14px 28px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      border: none;
+      border-radius: 50px;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #auto-five-star-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 35px rgba(102, 126, 234, 0.55);
+    }
+    #auto-five-star-btn:active {
+      transform: translateY(0);
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+    #auto-five-star-btn.running {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      box-shadow: 0 8px 25px rgba(245, 87, 108, 0.4);
+      animation: pulse 2s infinite;
+    }
+    #auto-five-star-btn.done {
+      background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      box-shadow: 0 8px 25px rgba(67, 233, 123, 0.4);
+    }
+    #auto-five-star-btn.error {
+      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      box-shadow: 0 8px 25px rgba(250, 112, 154, 0.4);
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.85; }
+    }
+  `;
+  document.head.appendChild(style);
+
   var btn = document.createElement('button');
   btn.id = 'auto-five-star-btn';
-  btn.textContent = '一键全部评教';
-  btn.style.cssText = 'position:fixed;bottom:30px;right:30px;z-index:99999;padding:12px 24px;background:#1677ff;color:#fff;border:none;border-radius:8px;font-size:16px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);';
+  btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg><span>一键全部评教</span>';
   document.body.appendChild(btn);
 
   var running = false;
 
+  function setText(text, className) {
+    btn.querySelector('span').textContent = text;
+    btn.className = className || '';
+  }
+
   btn.addEventListener('click', function () {
     if (running) return;
     running = true;
-    btn.textContent = '运行中...';
+    setText('运行中...', 'running');
     startLoop();
   });
 
-  function getJQuery() {
-    return window.jQuery || window.$ || window.Q;
+  function getJQuery(doc) {
+    var w = doc ? (doc.defaultView || window) : window;
+    return w.jQuery || w.$ || w.Q;
   }
 
   function wait(ms) {
     return new Promise(function (resolve) { setTimeout(resolve, ms); });
   }
 
-  // 等待元素出现
+  // 在当前文档和所有 iframe 中查找元素
+  function queryInAllFrames(selector) {
+    var el = document.querySelector(selector);
+    if (el) return { el: el, doc: document };
+
+    // 遍历所有 iframe
+    var iframes = document.querySelectorAll('iframe');
+    for (var i = 0; i < iframes.length; i++) {
+      try {
+        var iframeDoc = iframes[i].contentDocument || iframes[i].contentWindow.document;
+        if (iframeDoc) {
+          el = iframeDoc.querySelector(selector);
+          if (el) return { el: el, doc: iframeDoc };
+        }
+      } catch (e) {
+        // 跨域 iframe 无法访问，跳过
+      }
+    }
+    return null;
+  }
+
+  // 在所有 frame 中查找所有匹配元素
+  function queryAllInAllFrames(selector) {
+    var results = [];
+    var els = document.querySelectorAll(selector);
+    for (var i = 0; i < els.length; i++) results.push({ el: els[i], doc: document });
+
+    var iframes = document.querySelectorAll('iframe');
+    for (var i = 0; i < iframes.length; i++) {
+      try {
+        var iframeDoc = iframes[i].contentDocument || iframes[i].contentWindow.document;
+        if (iframeDoc) {
+          els = iframeDoc.querySelectorAll(selector);
+          for (var j = 0; j < els.length; j++) results.push({ el: els[j], doc: iframeDoc });
+        }
+      } catch (e) {}
+    }
+    return results;
+  }
+
+  // 等待元素出现（同时搜索 iframe）
   function waitForElement(selector, timeout) {
-    timeout = timeout || 10000;
+    timeout = timeout || 15000;
     return new Promise(function (resolve, reject) {
-      var el = document.querySelector(selector);
-      if (el) return resolve(el);
+      var result = queryInAllFrames(selector);
+      if (result) return resolve(result);
 
       var elapsed = 0;
       var interval = setInterval(function () {
-        el = document.querySelector(selector);
-        elapsed += 300;
-        if (el) {
+        result = queryInAllFrames(selector);
+        elapsed += 500;
+        if (result) {
           clearInterval(interval);
-          resolve(el);
+          resolve(result);
         } else if (elapsed >= timeout) {
           clearInterval(interval);
           reject(new Error('等待超时: ' + selector));
         }
-      }, 300);
+      }, 500);
     });
   }
 
   async function startLoop() {
-    var $ = getJQuery();
     var round = 0;
 
     while (true) {
       round++;
-      btn.textContent = '第 ' + round + ' 轮: 点击待评...';
+      setText('第 ' + round + ' 轮: 点击待评...', 'running');
 
       // 1. 点击「待评」标签
       try {
-        var dpTab = await waitForElement('label[data-action="切换评教状态"][data-name="DP"]', 5000);
-        if ($) $(dpTab).trigger('click'); else dpTab.click();
+        var result = await waitForElement('label[data-action="切换评教状态"][data-name="DP"]', 10000);
+        var $ = getJQuery(result.doc);
+        if ($) $(result.el).trigger('click'); else result.el.click();
       } catch (e) {
-        btn.textContent = '未找到待评标签';
-        running = false;
-        return;
-      }
-
-      await wait(1500);
-
-      // 2. 点击第一个待评卡片
-      btn.textContent = '第 ' + round + ' 轮: 进入待评项...';
-      try {
-        var firstCard = await waitForElement('.sc-panel-user-1-container', 8000);
-        if ($) $(firstCard).trigger('click'); else firstCard.click();
-      } catch (e) {
-        // 没有待评项了，完成
-        btn.textContent = '全部评教完成！共 ' + (round - 1) + ' 轮';
+        setText('未找到待评标签', 'error');
         running = false;
         return;
       }
 
       await wait(2000);
 
-      // 3. 等待星级评分加载
-      btn.textContent = '第 ' + round + ' 轮: 打五星...';
+      // 2. 点击第一个待评卡片
+      setText('第 ' + round + ' 轮: 进入待评项...', 'running');
       try {
-        await waitForElement('.wj-form-star', 10000);
+        var result = await waitForElement('.sc-panel-user-1-container', 10000);
+        var $ = getJQuery(result.doc);
+        if ($) $(result.el).trigger('click'); else result.el.click();
       } catch (e) {
-        btn.textContent = '星级评分未加载';
+        setText('全部评教完成！共 ' + (round - 1) + ' 轮', 'done');
+        running = false;
+        return;
+      }
+
+      await wait(3000);
+
+      // 3. 等待星级评分加载
+      setText('第 ' + round + ' 轮: 打五星...', 'running');
+      try {
+        await waitForElement('.wj-form-star', 15000);
+      } catch (e) {
+        setText('星级评分未加载', 'error');
         running = false;
         return;
       }
@@ -96,34 +193,36 @@
       await wait(500);
 
       // 4. 给所有评分打五星
-      $ = getJQuery();
-      var starGroups = document.querySelectorAll('.wj-form-star');
+      var starResults = queryAllInAllFrames('.wj-form-star');
       var needClick = [];
 
-      starGroups.forEach(function (group) {
+      starResults.forEach(function (item) {
+        var group = item.el;
         var currentVal = group.getAttribute('data-val');
         var items = group.querySelectorAll('.wj-form-star-item');
         if (items.length < 5) return;
         if (currentVal === '5') return;
-        needClick.push(items[4]);
+        needClick.push({ el: items[4], doc: item.doc });
       });
 
       for (var i = 0; i < needClick.length; i++) {
+        var $ = getJQuery(needClick[i].doc);
         if ($) {
-          $(needClick[i]).trigger('click');
+          $(needClick[i].el).trigger('click');
         } else {
-          needClick[i].click();
+          needClick[i].el.click();
         }
         await wait(100);
       }
 
-      await wait(800);
+      await wait(1000);
 
       // 5. 点击提交
-      btn.textContent = '第 ' + round + ' 轮: 提交...';
-      var submitBtn = document.querySelector('a[data-action="问卷填写-提交"]');
-      if (submitBtn) {
-        if ($) $(submitBtn).trigger('click'); else submitBtn.click();
+      setText('第 ' + round + ' 轮: 提交...', 'running');
+      var submitResult = queryInAllFrames('a[data-action="问卷填写-提交"]');
+      if (submitResult) {
+        var $ = getJQuery(submitResult.doc);
+        if ($) $(submitResult.el).trigger('click'); else submitResult.el.click();
       }
 
       // 6. 等待提交完成，页面返回
